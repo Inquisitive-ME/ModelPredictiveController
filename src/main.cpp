@@ -71,8 +71,11 @@ int main() {
 
   // MPC is initialized here!
   MPC mpc;
+  const double Lf = 2.67;
+  const double latency_dt = 0.1;
 
-  h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+
+  h.onMessage([&mpc, &Lf, &latency_dt](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -92,6 +95,8 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+          double delta = j[1]["steering_angle"];
+          double a = j[1]["throttle"];
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -119,8 +124,20 @@ int main() {
 
           auto coeffs = polyfit(x_vector,y_vector,3);
 
-          double cte = polyeval(coeffs, 0);
-          double epsi = -atan(coeffs[1]);
+          px = v * cos(psi) * latency_dt;
+          py = v * sin(psi) * latency_dt;
+          psi = v * delta / Lf * latency_dt;
+          v = v + a * latency_dt;
+
+          //double epsi = -atan(coeffs[1])  - v * delta / Lf * latency_dt;
+          //double cte = polyeval(coeffs, 0) + v * sin(epsi) * latency_dt;
+
+          // The cross track error is calculated by evaluating at polynomial at x, f(x)
+          // and subtracting y.
+          double cte = polyeval(coeffs, px) - py;
+          // Due to the sign starting at 0, the orientation error is -f'(x).
+          // derivative of coeffs[0] + coeffs[1] * x -> coeffs[1]
+          double epsi = psi - atan(coeffs[1]);
 
           Eigen::VectorXd state(6);
           state << 0, 0, 0, v, cte, epsi;

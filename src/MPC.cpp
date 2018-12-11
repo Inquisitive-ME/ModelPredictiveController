@@ -31,11 +31,11 @@ size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
 
 double ref_v = 60;
-double weight_cte = 1200;
-double weight_epsi = 1200;
-double weight_v = 2;
+double weight_cte = 800;
+double weight_epsi = 800;
+double weight_v = 30;
 double weight_steer_use = 500;
-double weight_accel_use = 10;
+double weight_accel_use = 100;
 double weight_delta_steer = 1000000;
 double weight_delta_accel = 1000;
 
@@ -74,11 +74,8 @@ class FG_eval {
         fg[0] += weight_delta_accel * CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
       }
 
-      // Penalty for steering at low cross track error
-      if(vars[cte_start + t] != 0.0)
-      {
-        fg[0] += weight_steer_use * 5 * CppAD::pow((vars[delta_start + t]/vars[cte_start + t]), 2);
-      }
+      // Penalty for speed at high cross track error
+        fg[0] += 1 * CppAD::pow(vars[v_start + t] * CppAD::pow(vars[cte_start + t], 2), 2);
     }
 
     //
